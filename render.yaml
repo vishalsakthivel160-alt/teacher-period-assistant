@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: teacher-period-assistant
+    env: node
+    buildCommand: npm install && cd backend && npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: teacher_period_assistant
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
