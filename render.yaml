@@ -2,7 +2,7 @@ services:
   - type: web
     name: teacher-period-assistant
     env: node
-    buildCommand: npm install && cd backend && npm install
+    buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: MONGO_URL

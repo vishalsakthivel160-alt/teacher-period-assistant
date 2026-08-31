@@ -10,6 +10,7 @@
  * browser can call the API on the same origin using relative /api paths.
  */
 
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -980,9 +981,40 @@ app.all('/api', (req, res, next) => apiRouter(req, res).catch(next));
 app.all('/api/*', (req, res, next) => apiRouter(req, res).catch(next));
 
 // Serve the frontend (single page) from ../frontend
-const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
-app.use(express.static(FRONTEND_DIR));
-app.get('*', (req, res) => res.sendFile(path.join(FRONTEND_DIR, 'index.html')));
+const FRONTEND_DIR = fs.existsSync(path.join(__dirname, '..', 'frontend'))
+  ? path.join(__dirname, '..', 'frontend')
+  : path.resolve(process.cwd(), 'frontend');
+
+app.use(express.static(FRONTEND_DIR, {
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+    } else if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    }
+  }
+}));
+
+// SPA fallback route for page navigation (excluding API routes and static asset requests)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  // Prevent serving index.html (text/html) for missing JS/CSS/asset requests which causes MIME type errors
+  if (/\.(js|mjs|css|json|png|jpg|jpeg|gif|ico|svg|map|woff2?|ttf|eot)$/i.test(req.path)) {
+    return res.status(404).type('text/plain').send('File not found');
+  }
+  const indexPath = path.join(FRONTEND_DIR, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).type('text/plain').send('Index HTML not found');
+  }
+});
 
 // Error handler
 app.use((error, req, res, next) => {
