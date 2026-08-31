@@ -3,7 +3,7 @@ services:
     name: teacher-period-assistant
     env: node
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node backend/server.js
     envVars:
       - key: MONGO_URL
         sync: false
